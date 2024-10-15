@@ -1,0 +1,88 @@
+name: test
+
+cluster: r15z4p2
+gpu_type: h100_80gb
+gpu_num: 16
+image: nvcr.io/nvidia/nemo:24.05
+
+integrations:
+  - integration_type: git_repo
+    git_repo: laine-12labs/nemo-repro
+    git_branch: main
+
+env_variables:
+  - name: num_nodes
+    key: NUM_NODES
+    value: 4
+  - name: num_gpus
+    key: NUM_GPUS
+    value: 8
+  - name: project_root
+    key: PROJECT_ROOT
+    value: /nemo
+  - name: omp_num_threads
+    key: OMP_NUM_THREADS
+    value: 1
+  
+command: |
+  export NCCL_IB_DISABLE=0
+  export NVIDIA_PYTORCH_VERSION=24.03
+  export GLOO_SOCKET_IFNAME=eth0
+  export NCCL_DEBUG=INFO
+
+  cd nemo
+  ls
+
+  rm -rf /tmp/1f3c1bbc23db5f603752a13bb6a2c46d/
+
+  python mclirun/prepare_data.py
+
+  mkdir checkpoint
+  wget --content-disposition 'https://api.ngc.nvidia.com/v2/models/org/nvidia/team/nemo/llama-3_1-8b-instruct-nemo/1.0/files?redirect=true&path=llama3_1_8b_instruct.nemo' -O checkpoint/llama3_1_8b_instruct.nemo
+
+  torchrun --nproc_per_node $NUM_GPUS --nnodes $NUM_NODES --master_addr $MASTER_ADDR --master_port $MASTER_PORT --node_rank $NODE_RANK \
+    examples/multimodal/multimodal_llm/neva/neva_pretrain.py \
+    ++cluster_type=BCP \
+    trainer.precision=bf16 \
+    trainer.num_nodes=$NUM_NODES \
+    trainer.devices=$NUM_GPUS \
+    trainer.val_check_interval=2000 \
+    trainer.limit_val_batches=5 \
+    trainer.log_every_n_steps=1 \
+    trainer.max_epochs=1 \
+    trainer.max_steps=-1 \
+    trainer.check_val_every_n_epoch=1 \
+    trainer.accumulate_grad_batches=4 \
+    model.megatron_amp_O2=True \
+    model.micro_batch_size=1 \
+    model.tensor_model_parallel_size=4 \
+    model.pipeline_model_parallel_size=2 \
+    model.mcore_gpt=True \
+    model.transformer_engine=True \
+    model.data.data_path=dataset/blip_laion_cc_sbu_558k.json \
+    model.data.image_folder=dataset/images \
+    model.num_layers=32 \
+    model.ffn_hidden_size=14336 \
+    model.num_attention_heads=32 \
+    model.normalization=rmsnorm \
+    model.do_layer_norm_weight_decay=False \
+    model.apply_query_key_layer_scaling=True \
+    model.bias=False \
+    model.activation=fast-swiglu \
+    model.headscale=False \
+    model.position_embedding_type=rope \
+    model.rotary_percentage=1.0 \
+    model.num_query_groups=8 \
+    model.data.num_workers=12 \
+    model.mm_cfg.llm.from_pretrained=checkpoint/llama3_1_8b_instruct.nemo \
+    model.mm_cfg.llm.model_type=llama_3 \
+    model.data.conv_template=llama_3 \
+    model.mm_cfg.vision_encoder.from_pretrained='openai/clip-vit-large-patch14' \
+    model.mm_cfg.vision_encoder.from_hf=True \
+    model.optim.name="fused_adam" \
+    model.activations_checkpoint_granularity=full \
+    model.activations_checkpoint_method=uniform \
+    model.activations_checkpoint_num_layers=8 \
+    exp_manager.create_checkpoint_callback=True \
+    exp_manager.checkpoint_callback_params.save_nemo_on_train_end=True \
+    exp_manager.create_wandb_logger=False

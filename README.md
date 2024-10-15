@@ -1,18 +1,11 @@
-## Environment Setting (TBD)
-
 ## Model and Data Preparation
 
 ### Prepare pretrained model checkpoints
 
-1) Download LLaMa-3.1 model from huggingface. We use 8B for debugging. <br>
-Links: [LLama-3.1-8B-Instruct](https://huggingface.co/meta-llama/Meta-Llama-3.1-8B-Instruct), [LLama-3.1-70B-Instruct](https://huggingface.co/meta-llama/Meta-Llama-3.1-70B-Instruct)
-
-2) Convert the checkpoints into NeMo-compatible format by running the following code:
+Download `.nemo` format checkpoint for LLAMA-3.1 at [this link](https://catalog.ngc.nvidia.com/orgs/nvidia/teams/nemo/models/llama-3_1-8b-instruct-nemo). Alternatively, you can use the following command:<br>
 
 ```bash
-python scripts/checkpoint_converters/convert_llama_hf_to_nemo.py \
-  --input_name_or_path {CHECKPOINT_DIR}/Meta-Llama-3.1-8B \
-  --output_path {CHECKPOINT_DIR}/llama-3.1-8b-instruct.nemo
+$ ngc registry model download-version "nvidia/nemo/llama-3_1-8b-instruct-nemo:1.0"
 ```
 
 ### Prepare the dataset
