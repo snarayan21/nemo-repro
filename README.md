@@ -12,7 +12,7 @@ Links: [LLama-3.1-8B-Instruct](https://huggingface.co/meta-llama/Meta-Llama-3.1-
 ```bash
 python scripts/checkpoint_converters/convert_llama_hf_to_nemo.py \
   --input_name_or_path {CHECKPOINT_DIR}/Meta-Llama-3.1-8B \
-  --output_path /workspace/neva/checkpoints/llama-3.1-8b-instruct.nemo
+  --output_path {CHECKPOINT_DIR}/llama-3.1-8b-instruct.nemo
 ```
 
 ### Prepare the dataset
