@@ -29,7 +29,7 @@ exp_manager:
   wandb_logger_kwargs:
     project: null
     name: null
-  resume_if_exists: True
+  resume_if_exists: False
   resume_ignore_no_checkpoint: True
   resume_from_checkpoint: ${model.resume_from_checkpoint}
   create_checkpoint_callback: True
@@ -39,7 +39,7 @@ exp_manager:
     mode: min
     always_save_nemo: False # saves nemo file during validation, not implemented for model parallel
     save_nemo_on_train_end: True # not recommended when training large models on clusters with short time limits
-    filename: 'megatron_clip--{val_loss:.2f}-{step}-{consumed_samples}'
+    filename: 'nevasus-8B--{val_loss:.2f}-{step}-{consumed_samples}'
     model_parallel_size: ${multiply:${model.tensor_model_parallel_size}, ${model.pipeline_model_parallel_size}}
   ema:
     enable: False
@@ -55,8 +55,8 @@ model:
   # gradient accumulation will be done automatically based on data_parallel_size
 
   # Batch size guideline for different types of dataset
-  micro_batch_size: 16 # limited by GPU memory
-  global_batch_size: 128 # will use more micro batches to reach global batch size
+  micro_batch_size: 1 # limited by GPU memory
+  global_batch_size: 16 # will use more micro batches to reach global batch size
 
   tensor_model_parallel_size: 1 # intra-layer model parallelism
   pipeline_model_parallel_size: 1 # inter-layer model parallelism
@@ -70,7 +70,7 @@ model:
     llm:
       from_pretrained: null # path to nemo checkpoint
       freeze: True
-      model_type: llama_2 #  `v1`, `nvgpt`, `llama_2`, `llama_3`  and `mistral` supported
+      model_type: llama_3 #  `v1`, `nvgpt`, `llama_2`, `llama_3`  and `mistral` supported
     vision_encoder:
       from_pretrained: "" # path or name
       from_hf: True
@@ -87,16 +87,16 @@ model:
 
   # LLM configs
   # use GPTModel from megatron.core
-  mcore_gpt: False
+  mcore_gpt: True
 
   # model architecture
   encoder_seq_length: 4096
   max_position_embeddings: ${.encoder_seq_length}
   position_embedding_type: rope
-  num_layers: 40
-  hidden_size: 5120
-  ffn_hidden_size: 13824 # Transformer FFN hidden size. Usually 4 * hidden_size.
-  num_attention_heads: 40
+  num_layers: 80
+  hidden_size: 8192
+  ffn_hidden_size: 28672 # Transformer FFN hidden size. Usually 4 * hidden_size.
+  num_attention_heads: 64
   init_method_std: 0.014 # Standard deviation of the zero mean normal distribution used for weight initialization.')
   use_scaled_init_method: True # use scaled residuals initialization
   hidden_dropout: 0.0 # Dropout probability for hidden state transformer.
@@ -107,6 +107,7 @@ model:
   normalization: rmsnorm # Type of normalization layers
   layernorm_epsilon: 1e-5
   do_layer_norm_weight_decay: False # True means weight decay on all params
+  make_vocab_size_divisible_by: 16 # Pad the vocab size to be divisible by this value for computation efficiency.
   pre_process: True # add embedding
   post_process: True # add pooler
   persist_layer_norm: True # Use of persistent fused layer norm kernel.
@@ -116,12 +117,13 @@ model:
   transformer_block_type: 'pre_ln' # Options ['pre_ln', 'post_ln', 'normformer']
   normalize_attention_scores: True # Whether to scale the output Q * K^T by 1 / sqrt(hidden_size_per_head). This arg is provided as a configuration option mostly for compatibility with models that have been weight-converted from HF. You almost always want to se this to True.
   rotary_percentage: 1.0 # If using position_embedding_type=rope, then the per head dim is multiplied by this.
+  rotary_base: 500000.0 # default is 10000
   attention_type: 'multihead' # Attention type. Options ['multihead']
   share_embeddings_and_output_weights: False # Share embedding and output layer weights.
   overlap_p2p_comm: False # Overlap p2p communication with computes. This argument is valid only when `virtual_pipeline_model_parallel_size` is larger than 1
   batch_p2p_comm: True # Batch consecutive inter-peer send/recv operations. This argument is valid only when `virtual_pipeline_model_parallel_size` is larger than 1
   seq_len_interpolation_factor: null # RoPE Interpolation factor for sequence length. This is used to build long-context models with RoPE ex: https://arxiv.org/abs/2306.15595.
-  num_query_groups: null # Number of query groups for group query attention. If None, normal attention is used.
+  num_query_groups: 8 # Number of query groups for group query attention. If None, normal attention is used.
   use_flash_attention: True
 
   ## Activation Checkpointing
@@ -172,9 +174,12 @@ model:
   apex_transformer_log_level: 30 # Python logging level displays logs with severity greater than or equal to this
   gradient_as_bucket_view: True # PyTorch DDP argument. Allocate gradients in a contiguous bucket to save memory (less fragmentation and buffer memory)
 
+  optim:
+    name: fused_adam
+
   tokenizer:
-    library: 'sentencepiece'
-    type: null
+    library: 'huggingface'
+    type: meta-llama/Meta-Llama-3.1-8B-Instruct
     model: null
     vocab_file: null
     merge_file: null
@@ -210,21 +215,21 @@ model:
     image_folder: null
     image_aspect_ratio: 'square'
 
-  energon:
-    use_energon: False
-    data:
-      __module__: megatron.energon
-      __class__: Metadataset
-      splits:
-        # Train dataset, the datasets will be mixed according to their weights 
-        train:
-          datasets:
-            - weight: 1.0
-              path: null
-        val:
-          datasets:
-            - weight: 1.0
-              path: null
+energon:
+  use_energon: False
+  data:
+    __module__: megatron.energon
+    __class__: Metadataset
+    splits:
+      # Train dataset, the datasets will be mixed according to their weights 
+      train:
+        datasets:
+          - weight: 1.0
+            path: null
+      val:
+        datasets:
+          - weight: 1.0
+            path: null
 
 
   # Nsys profiling options

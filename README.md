@@ -1,4 +1,24 @@
-## Model and Data Preparation
+## Docker Setting
+
+Build the docker container with the following:
+
+```bash
+$ DOCKER_BUILDKIT=1 docker build -f Dockerfile.ci -t nemo:latest .
+```
+
+Then assign this docker image in the yaml file.
+
+## Launch pre-training
+
+We run with tensor_parallel_size=4, pipeline_parallel_size=2. Run the following command.
+
+```bash
+mcli run -f mclirun/test.yaml
+```
+
+## Model and Data Preparation (optional)
+
+Model checkpoint and dataset are prepared on the fly within the yaml file. For further information, refer to the contents below.
 
 ### Prepare pretrained model checkpoints
 
@@ -17,12 +37,4 @@ DATA_DIR
   ㄴ LLaVA-Pretrain-LCS-558K
     ㄴ blip_laion_cc_sbu_558k.json
     ㄴ images/
-```
-
-## Launch pre-training
-
-We run with tensor_parallel_size=4, pipeline_parallel_size=2.
-
-```bash
-mcli run -f mclirun/test.yaml
 ```
