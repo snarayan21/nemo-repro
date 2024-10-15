@@ -1,4 +1,4 @@
-## Environment Setting (TBD.)
+## Environment Setting (TBD)
 
 ## Model and Data Preparation
 
