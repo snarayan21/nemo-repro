@@ -6,7 +6,7 @@ Build the docker container with the following:
 $ DOCKER_BUILDKIT=1 docker build -f Dockerfile.ci -t nemo:latest .
 ```
 
-## Nvidia's docker build instruction
+## Nvidia's docker build instruction (Recommend)
 
 ```bash
 apt-get update && apt-get install -y libsndfile1 ffmpeg
