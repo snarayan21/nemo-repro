@@ -9,14 +9,14 @@ trainer:
   logger: False # logger provided by exp_manager
   enable_checkpointing: False
   use_distributed_sampler: False
-  max_epochs: -1 # PTL default. In practice, max_steps will be reached first.
-  max_steps: 4650 # consumed_samples = global_step * micro_batch_size * data_parallel_size * accumulate_grad_batches
+  max_epochs: 1 # PTL default. In practice, max_steps will be reached first.
+  max_steps: -1 # consumed_samples = global_step * micro_batch_size * data_parallel_size * accumulate_grad_batches
   log_every_n_steps: 10
-  val_check_interval: 100
-  check_val_every_n_epoch: null
+  val_check_interval: 1000
+  check_val_every_n_epoch: 1
   limit_val_batches: 50
   limit_test_batches: 500
-  accumulate_grad_batches: 1 # do not modify, grad acc is automatic for training megatron models
+  accumulate_grad_batches: 1
   gradient_clip_val: 1.0
   benchmark: False
   enable_model_summary: False # default PTL callback for this does not support model parallelism, instead we log manually
@@ -24,22 +24,23 @@ trainer:
 exp_manager:
   explicit_log_dir: null
   exp_dir: null
-  name: nemo_neva
-  create_wandb_logger: False
+  name: ${name}
+  create_wandb_logger: True
   wandb_logger_kwargs:
     project: null
-    name: null
+    name: null # Do not modify this
   resume_if_exists: True
   resume_ignore_no_checkpoint: True
   resume_from_checkpoint: ${model.resume_from_checkpoint}
   create_checkpoint_callback: True
   checkpoint_callback_params:
     monitor: val_loss
-    save_top_k: 10
+    save_top_k: 1
     mode: min
+    save_last_n_optim_states: 1
     always_save_nemo: False # saves nemo file during validation, not implemented for model parallel
     save_nemo_on_train_end: True # not recommended when training large models on clusters with short time limits
-    filename: 'megatron_clip--{val_loss:.2f}-{step}-{consumed_samples}'
+    filename: 'nevasus-8B--{val_loss:.2f}-{step}-{consumed_samples}'
     model_parallel_size: ${multiply:${model.tensor_model_parallel_size}, ${model.pipeline_model_parallel_size}}
   ema:
     enable: False
@@ -55,8 +56,8 @@ model:
   # gradient accumulation will be done automatically based on data_parallel_size
 
   # Batch size guideline for different types of dataset
-  micro_batch_size: 16 # limited by GPU memory
-  global_batch_size: 128 # will use more micro batches to reach global batch size
+  micro_batch_size: 1 # limited by GPU memory
+  global_batch_size: 128 # Do not modify this
 
   tensor_model_parallel_size: 1 # intra-layer model parallelism
   pipeline_model_parallel_size: 1 # inter-layer model parallelism
@@ -70,7 +71,8 @@ model:
     llm:
       from_pretrained: null # path to nemo checkpoint
       freeze: True
-      model_type: llama_2 #  `v1`, `nvgpt`, `llama_2`, `llama_3`  and `mistral` supported
+      model_type: llama_3 #  `v1`, `nvgpt`, `llama_2`, `llama_3`  and `mistral` supported
+      context_length: 32768
     vision_encoder:
       from_pretrained: "" # path or name
       from_hf: True
@@ -81,22 +83,22 @@ model:
       class_token_length: 1
       freeze: True
     pretrain_mm_mlp_adapter: null # path to pretrained mm adapter
-    mm_mlp_adapter_type: linear
+    mm_mlp_adapter_type: mlp_downsample
     use_im_start_end: False
 
 
   # LLM configs
   # use GPTModel from megatron.core
-  mcore_gpt: False
+  mcore_gpt: True
 
   # model architecture
   encoder_seq_length: 4096
   max_position_embeddings: ${.encoder_seq_length}
   position_embedding_type: rope
-  num_layers: 40
-  hidden_size: 5120
-  ffn_hidden_size: 13824 # Transformer FFN hidden size. Usually 4 * hidden_size.
-  num_attention_heads: 40
+  num_layers: 32
+  hidden_size: 4096
+  ffn_hidden_size: 14336 # Transformer FFN hidden size. Usually 4 * hidden_size.
+  num_attention_heads: 32
   init_method_std: 0.014 # Standard deviation of the zero mean normal distribution used for weight initialization.')
   use_scaled_init_method: True # use scaled residuals initialization
   hidden_dropout: 0.0 # Dropout probability for hidden state transformer.
@@ -107,6 +109,7 @@ model:
   normalization: rmsnorm # Type of normalization layers
   layernorm_epsilon: 1e-5
   do_layer_norm_weight_decay: False # True means weight decay on all params
+  make_vocab_size_divisible_by: 16 # Pad the vocab size to be divisible by this value for computation efficiency.
   pre_process: True # add embedding
   post_process: True # add pooler
   persist_layer_norm: True # Use of persistent fused layer norm kernel.
@@ -116,18 +119,21 @@ model:
   transformer_block_type: 'pre_ln' # Options ['pre_ln', 'post_ln', 'normformer']
   normalize_attention_scores: True # Whether to scale the output Q * K^T by 1 / sqrt(hidden_size_per_head). This arg is provided as a configuration option mostly for compatibility with models that have been weight-converted from HF. You almost always want to se this to True.
   rotary_percentage: 1.0 # If using position_embedding_type=rope, then the per head dim is multiplied by this.
+  rotary_base: 500000.0 # default is 10000
   attention_type: 'multihead' # Attention type. Options ['multihead']
   share_embeddings_and_output_weights: False # Share embedding and output layer weights.
   overlap_p2p_comm: False # Overlap p2p communication with computes. This argument is valid only when `virtual_pipeline_model_parallel_size` is larger than 1
   batch_p2p_comm: True # Batch consecutive inter-peer send/recv operations. This argument is valid only when `virtual_pipeline_model_parallel_size` is larger than 1
   seq_len_interpolation_factor: null # RoPE Interpolation factor for sequence length. This is used to build long-context models with RoPE ex: https://arxiv.org/abs/2306.15595.
-  num_query_groups: null # Number of query groups for group query attention. If None, normal attention is used.
+  num_query_groups: 8 # Number of query groups for group query attention. If None, normal attention is used.
   use_flash_attention: True
 
+  sharp: True
+
   ## Activation Checkpointing
-  activations_checkpoint_granularity: null # 'selective' or 'full'
-  activations_checkpoint_method: null # 'uniform', 'block', not used with 'selective'
-  activations_checkpoint_num_layers: null # not used with 'selective'
+  activations_checkpoint_granularity: full # 'selective' or 'full'
+  activations_checkpoint_method: uniform # 'uniform', 'block', not used with 'selective'
+  activations_checkpoint_num_layers: 8 # not used with 'selective'
   num_micro_batches_with_partial_activation_checkpoints: null
   activations_checkpoint_layers_per_pipeline: null
   sequence_parallel: False
@@ -172,17 +178,31 @@ model:
   apex_transformer_log_level: 30 # Python logging level displays logs with severity greater than or equal to this
   gradient_as_bucket_view: True # PyTorch DDP argument. Allocate gradients in a contiguous bucket to save memory (less fragmentation and buffer memory)
 
+  optim:
+    name: fused_adam
+    lr: 2e-3
+    weight_decay: 0.
+    betas:
+      - 0.9
+      - 0.95
+    sched:
+      name: CosineAnnealing
+      warmup_steps: 140
+      constant_steps: 0
+      min_lr: 2e-5
+
   tokenizer:
-    library: 'sentencepiece'
-    type: null
+    library: 'huggingface'
+    type: meta-llama/Meta-Llama-3.1-8B-Instruct
     model: null
     vocab_file: null
     merge_file: null
     delimiter: null # only used for tabular tokenizer
     sentencepiece_legacy: False # Legacy=True allows you to add special tokens to sentencepiece tokenizers.
-    additional_special_tokens: null # ["<extra_id_0>", "<extra_id_1>", "<extra_id_2>", "<extra_id_3>", "<extra_id_4>", "<extra_id_5>"]
+    additional_special_tokens: {"additional_special_tokens": ["<extra_id_0>", "<extra_id_1>", "<extra_id_2>", "<extra_id_3>", "<extra_id_4>", "<extra_id_5>", "<extra_id_6>", "<extra_id_7>"]}
 
   data:
+    packing: False # to handle streaming dataset packed sequence
     packed_sequence: False
     num_workers: 8
     dataloader_type: cyclic
@@ -209,6 +229,8 @@ model:
     conv_template: ${model.mm_cfg.llm.model_type} # check `nemo/collections/multimodal/data/neva/conversation.py`
     image_folder: null
     image_aspect_ratio: 'square'
+
+
 
 energon:
   use_energon: False
