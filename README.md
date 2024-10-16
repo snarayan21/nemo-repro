@@ -11,7 +11,7 @@ $ DOCKER_BUILDKIT=1 docker build -f Dockerfile.ci -t nemo:latest .
 ```bash
 apt-get update && apt-get install -y libsndfile1 ffmpeg
 git clone https://github.com/laine-12labs/nemo-repro
-cd nemo-repo
+cd nemo-repro
 ./reinstall.sh
 ```
 
@@ -98,8 +98,7 @@ We run with tensor_parallel_size=4, pipeline_parallel_size=2. Run the following 
 mcli run -f mclirun/test.yaml
 ```
 
-NOTE :
-- If you build the docker file (not using nemo:latest), you should set nv_pytorch_tag like below.
+NOTE : If you build the docker file (not using nemo:latest), you should set nv_pytorch_tag like below.
 ```bash
 export nv_pytorch_tag=24.02-py3
 ```
