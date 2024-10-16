@@ -10,7 +10,7 @@ $ DOCKER_BUILDKIT=1 docker build -f Dockerfile.ci -t nemo:latest .
 
 ```bash
 apt-get update && apt-get install -y libsndfile1 ffmpeg
-git clone https://github.com/laine-12labs/nemo-repo
+git clone https://github.com/laine-12labs/nemo-repro
 cd nemo-repo
 ./reinstall.sh
 ```
