@@ -1287,8 +1287,6 @@ class LazySupervisedDataset(Dataset):
                     use_plain=(self.conv_template == "plain"),
                 )
 
-                print(f"\nsources: {sources}")
-
         else:
             media_tensors = torch.tensor([])
             sources = copy.deepcopy(sources)
@@ -1298,8 +1296,6 @@ class LazySupervisedDataset(Dataset):
         if isinstance(i, int):
             data_dict = dict(tokens=data_dict["tokens"][0], labels=data_dict["labels"][0])
 
-        print(f"\ndata_dict: {data_dict}")
-        
         ### DEBUGGING ###
 
         try:

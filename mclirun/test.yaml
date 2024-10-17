@@ -9,7 +9,7 @@ image: 12labs/nemo:ifb_nccl_20
 integrations:
   - integration_type: git_repo
     git_repo: laine-12labs/nemo-repro
-    git_branch: nemo-frozen
+    git_branch: long-frozen
 
 env_variables:
   - name: num_nodes
