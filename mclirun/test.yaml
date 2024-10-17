@@ -30,10 +30,11 @@ command: |
   export NVIDIA_PYTORCH_VERSION=24.02
   export GLOO_SOCKET_IFNAME=eth0
   export NCCL_DEBUG=INFO
-  export PYTHONPATH=$(pwd)
 
   cd nemo-repro
   ls
+
+  export PYTHONPATH=$(pwd)
 
   python mclirun/prepare_data.py
 
