@@ -24,7 +24,7 @@ import numpy as np
 import torch
 import torch.nn.functional as F
 import transformers
-from einops import rearrange
+from einops import rearrange, repeat
 from omegaconf import DictConfig
 from PIL import Image
 from torch.utils.data import Dataset, default_collate
@@ -1287,6 +1287,8 @@ class LazySupervisedDataset(Dataset):
                     use_plain=(self.conv_template == "plain"),
                 )
 
+                print(f"\nsources: {sources}")
+
         else:
             media_tensors = torch.tensor([])
             sources = copy.deepcopy(sources)
@@ -1295,6 +1297,22 @@ class LazySupervisedDataset(Dataset):
 
         if isinstance(i, int):
             data_dict = dict(tokens=data_dict["tokens"][0], labels=data_dict["labels"][0])
+
+        print(f"\ndata_dict: {data_dict}")
+        
+        ### DEBUGGING ###
+
+        try:
+            context_len = self.multimodal_cfg['llm']['context_length']
+        except:
+            context_len = 8192
+
+        multipler = len(data_dict['tokens']) // context_len
+
+        data_dict['tokens'] = repeat(data_dict['tokens'], 'n -> (n m)', m=multipler)
+        data_dict['labels'] = repeat(data_dict['labels'], 'n -> (n m)', m=multipler)
+
+        ### ### ### ### #
 
         # image exist in the data
         if self.multimodal_cfg['is_multimodal']:
@@ -1309,6 +1327,8 @@ class LazySupervisedDataset(Dataset):
                 padding_size = MAX_NUM_IMAGES - media_tensors.shape[0]
                 zero_padding = torch.zeros((padding_size, 3, crop_size[0], crop_size[1]), dtype=torch.float)
                 media_tensors = torch.cat((media_tensors, zero_padding), dim=0)
+
+            media_tensors = repeat(media_tensors, 'b c h w -> (b m) c h w', m=multipler)
 
             if self.multimodal_cfg['media_type'] == 'image':
                 data_dict['image'] = media_tensors
