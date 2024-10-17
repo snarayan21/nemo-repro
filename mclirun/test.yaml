@@ -75,7 +75,7 @@ command: |
     model.position_embedding_type=rope \
     model.rotary_percentage=1.0 \
     model.num_query_groups=8 \
-    model.data.num_workers=0 \
+    model.data.num_workers=4 \
     model.mm_cfg.llm.from_pretrained=checkpoint/llama3_1_8b_instruct.nemo \
     model.mm_cfg.llm.model_type=llama_3 \
     model.mm_cfg.llm.context_length=8192 \

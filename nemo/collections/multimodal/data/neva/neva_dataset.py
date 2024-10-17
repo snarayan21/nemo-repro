@@ -1298,15 +1298,25 @@ class LazySupervisedDataset(Dataset):
 
         ### DEBUGGING ###
 
-        try:
-            context_len = self.multimodal_cfg['llm']['context_length']
-        except:
-            context_len = 8192
+        # try:
+        #     context_len = self.multimodal_cfg['llm']['context_length']
+        # except:
+        #     context_len = 8192
 
-        multipler = len(data_dict['tokens']) // context_len
+        # multipler = context_len // len(data_dict['tokens'])
 
-        data_dict['tokens'] = repeat(data_dict['tokens'], 'n -> (n m)', m=multipler)
-        data_dict['labels'] = repeat(data_dict['labels'], 'n -> (n m)', m=multipler)
+        im_end_index = data_dict['tokens'].tolist().index(128013)
+
+        multipler = 200
+
+        tokens_after_im_end = data_dict['tokens'][im_end_index + 1:]
+        labels_after_im_end = data_dict['labels'][im_end_index + 1:]
+
+        repeated_tokens_after_im_end = repeat(tokens_after_im_end, 'n -> (n m)', m=multipler)
+        repeated_labels_after_im_end = repeat(labels_after_im_end, 'n -> (n m)', m=multipler)
+
+        data_dict['tokens'] = torch.cat((data_dict['tokens'], repeated_tokens_after_im_end), dim=0)
+        data_dict['labels'] = torch.cat((data_dict['labels'], repeated_labels_after_im_end), dim=0)
 
         ### ### ### ### #
 
@@ -1323,8 +1333,6 @@ class LazySupervisedDataset(Dataset):
                 padding_size = MAX_NUM_IMAGES - media_tensors.shape[0]
                 zero_padding = torch.zeros((padding_size, 3, crop_size[0], crop_size[1]), dtype=torch.float)
                 media_tensors = torch.cat((media_tensors, zero_padding), dim=0)
-
-            media_tensors = repeat(media_tensors, 'b c h w -> (b m) c h w', m=multipler)
 
             if self.multimodal_cfg['media_type'] == 'image':
                 data_dict['image'] = media_tensors
