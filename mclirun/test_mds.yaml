@@ -42,10 +42,10 @@ command: |
   torchrun --nproc_per_node $NUM_GPUS --nnodes $NUM_NODES --master_addr $MASTER_ADDR --master_port $MASTER_PORT --node_rank $NODE_RANK \
     examples/multimodal/multimodal_llm/neva/neva_pretrain.py \
     ++cluster_type=BCP \
-    trainer.num_nodes=1 \
+    trainer.num_nodes=$NUM_NODES \
     trainer.devices=$NUM_GPUS \
     trainer.precision=bf16 \
-    trainer.val_check_interval=1000 \
+    trainer.val_check_interval=2000 \
     trainer.limit_val_batches=5 \
     trainer.log_every_n_steps=1 \
     trainer.max_epochs=10 \
@@ -63,7 +63,7 @@ command: |
     model.num_attention_heads=32 \
     model.mcore_gpt=True \
     model.transformer_engine=True \
-    model.data.data_path=oci://twelvelabs-dataset@axcw5iqjbtrz/public-dataset/nemo/llava_pt/streaming \
+    model.data.data_path=oci://{oci-bucket}}/{streaming-dataset-path}/streaming \
     model.data.streaming=True \
     model.encoder_seq_length=16384 \
     model.normalization=rmsnorm \
@@ -85,4 +85,4 @@ command: |
     exp_manager.create_checkpoint_callback=True \
     exp_manager.checkpoint_callback_params.save_nemo_on_train_end=True \
     exp_manager.create_wandb_logger=True \
-    exp_manager.wandb_logger_kwargs.project="siglip-llama3.1-align"
+    exp_manager.wandb_logger_kwargs.project="mcli-test"
