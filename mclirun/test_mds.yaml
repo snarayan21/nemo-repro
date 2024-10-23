@@ -65,6 +65,7 @@ command: |
     model.transformer_engine=True \
     model.data.data_path=oci://{oci-bucket}}/{streaming-dataset-path}/streaming \
     model.data.streaming=True \
+    model.data.region=us-sanjose-1 \
     model.encoder_seq_length=16384 \
     model.normalization=rmsnorm \
     model.do_layer_norm_weight_decay=False \

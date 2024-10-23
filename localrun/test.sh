@@ -21,6 +21,7 @@ CUDA_VISIBLE_DEVICES=6,7 torchrun --nproc_per_node=2 examples/multimodal/multimo
  model.transformer_engine=True \
  model.data.data_path=oci://{oci-bucket}}/{streaming-dataset-path}/streaming \
  model.data.streaming=True \
+ model.data.region=us-sanjose-1 \
  model.num_layers=32 \
  model.ffn_hidden_size=14336 \
  model.num_attention_heads=32 \

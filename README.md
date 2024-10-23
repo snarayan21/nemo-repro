@@ -125,3 +125,38 @@ DATA_DIR
     ㄴ blip_laion_cc_sbu_558k.json
     ㄴ images/
 ```
+
+### Prepare the MDS dataset
+After downloading `LAION/CC/SBU BLIP-Caption Concept-balanced 558K` by
+```
+python mclirun/prepare_data.py
+```
+
+You should upload all images to oci bucket.
+```
+oci os object sync --bucket-name {bucket_name} --src-dir "{dataset/LLaVA-Pretrain-LCS-558K/images}" --prefix "{bucket_path}/LLaVA-Pretrain-LCS-558K/images/" --include "*"
+```
+And make MDS.
+```
+python localrun/make_streaming_ds.py --json_path "{dataset/LLaVA-Pretrain-LCS-558K/blip_laion_cc_sbu_558k.json}" --remote "{bucket_path}/LLaVA-Pretrain-LCS-558K/streaming"
+```
+
+
+## Launch pretraining with MDS
+### Local
+Set your oci data path and region properly in localrun/test.sh<br>
+`model.data.data_path=oci://{oci-bucket}}/{streaming-dataset-path}/streaming`<br>
+`model.data.region={region}`
+```
+./localrun/test.sh
+```
+
+### MCLI
+Set your oci data path region properly in mclirun/test_mds.sh<br>
+`model.data.data_path=oci://{oci-bucket}}/{streaming-dataset-path}/streaming`<br>
+`model.data.region={region}`<br>
+Also, make the oci config. (/root/.oci)<br>
+Launch the job.
+```
+mcli run -f mclirun/test_mds.yaml
+```
