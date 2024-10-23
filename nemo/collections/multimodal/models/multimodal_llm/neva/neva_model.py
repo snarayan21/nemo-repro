@@ -1322,6 +1322,7 @@ class MegatronNevaModel(MultimodalAdapterModelMixin, MegatronGPTModel):
                     ),
                     model_cfg=self.cfg,
                     each_file_from_path=each_file_from_path,
+                    streaming=self.cfg.data.get('streaming', False),
                 )
                 train_dataset = ds_dict["train_dataset"]
                 valid_dataset = ds_dict["eval_dataset"]

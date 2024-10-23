@@ -1435,6 +1435,8 @@ class DataCollatorForSupervisedDataset(object):
             raise NotImplementedError
         else:
             if media_type == 'image':
+                if media.ndim == 4:
+                    media = rearrange(media, "b c h w -> b 1 c h w")
                 media = rearrange(media, "b T c h w -> b T 1 c h w")
             elif media_type == 'video':
                 media = rearrange(media, "b T F c h w -> b T F c h w")
@@ -1450,6 +1452,7 @@ class DataCollatorForSupervisedDataset(object):
         if packed_sequence:
             batch["cu_seqlens"] = cu_seqlens
         return batch
+
 
 
 def make_supervised_data_module(tokenizer, image_processor, model_cfg, each_file_from_path=None, streaming=False) -> Dict:
