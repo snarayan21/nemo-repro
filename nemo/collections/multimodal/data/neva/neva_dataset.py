@@ -47,6 +47,12 @@ from nemo.collections.multimodal.data.neva.conversation import (
 )
 from nemo.collections.nlp.modules.common.megatron.utils import get_ltor_masks_and_position_ids
 
+from streaming import StreamingDataset
+from streaming.base.util import clean_stale_shared_memory
+import oci
+from ocifs import OCIFileSystem
+from PIL import Image
+
 MAX_NUM_IMAGES = 1
 IGNORE_INDEX = -1
 
@@ -1444,7 +1450,7 @@ class DataCollatorForSupervisedDataset(object):
         return batch
 
 
-def make_supervised_data_module(tokenizer, image_processor, model_cfg, each_file_from_path=None) -> Dict:
+def make_supervised_data_module(tokenizer, image_processor, model_cfg, each_file_from_path=None, streaming=False) -> Dict:
     """Make dataset and collator for supervised fine-tuning."""
     data_cfg = model_cfg.data
     mm_cfg = model_cfg.mm_cfg
@@ -1453,35 +1459,72 @@ def make_supervised_data_module(tokenizer, image_processor, model_cfg, each_file
         add_extra_token = 0
     crop_size = mm_cfg.vision_encoder.get("crop_size", (224, 224))
     data_path = each_file_from_path if each_file_from_path is not None else data_cfg.data_path
-    train_dataset = NevaDataset(
-        tokenizer=tokenizer,
-        data_path=data_path,
-        multimodal_cfg=dict(
-            is_multimodal=data_cfg.is_multimodal,
-            sep_image_conv_front=data_cfg.sep_image_conv_front,
-            model_type=mm_cfg.llm.get("model_type", "nvgpt"),
-            conv_template=data_cfg.get("conv_template", "nvgpt"),
-            patch_dim=model_cfg.mm_cfg.vision_encoder.patch_dim,
-            crop_size=crop_size,
-            image_folder=data_cfg.get('image_folder', None),
-            video_folder=data_cfg.get('video_folder', None),
-            image_aspect_ratio=data_cfg.image_aspect_ratio,
-            use_im_start_end=getattr(model_cfg.mm_cfg, 'use_im_start_end', False),
-            image_processor=image_processor,
-            add_extra_token=add_extra_token,
-            context_length=model_cfg.encoder_seq_length,
-            media_type=data_cfg.get('media_type', 'image'),
-            num_frames=data_cfg.get('num_frames', -1),
-            use_lita=getattr(model_cfg.mm_cfg, 'use_lita', False),
-            lita=getattr(model_cfg.mm_cfg, 'lita', {}),
-            mm_mlp_adapter_type=model_cfg.mm_cfg.get('mm_mlp_adapter_type', 'linear'),
-        ),
-        data_cfg=dict(
-            splice_single_frame=data_cfg.get('splice_single_frame', None),
-            num_frames=data_cfg.get('num_frames', -1),
-            sep_token_between_frames=data_cfg.get('sep_token_between_frames', False),
-        ),
-    )
+
+    pp = model_cfg.get("pipeline_model_parallel_size")
+    tp = model_cfg.get("tensor_model_parallel_size")
+    cp = model_cfg.get("context_parallel_size")
+    if streaming:
+        clean_stale_shared_memory()
+        train_dataset = AlignmentDataset(
+            remote=data_path,
+            local=None,
+            shuffle=True,
+            tokenizer=tokenizer,
+            batch_size=data_cfg.batch_size,
+            region=data_cfg.region,
+            multimodal_cfg=dict(
+                is_multimodal=data_cfg.is_multimodal,
+                sep_image_conv_front=data_cfg.sep_image_conv_front,
+                model_type=mm_cfg.llm.get("model_type", "nvgpt"),
+                conv_template=data_cfg.get("conv_template", "nvgpt"),
+                patch_dim=model_cfg.mm_cfg.vision_encoder.patch_dim,
+                crop_size=crop_size,
+                image_folder=data_cfg.get('image_folder', None),
+                video_folder=data_cfg.get('video_folder', None),
+                image_aspect_ratio=data_cfg.image_aspect_ratio,
+                use_im_start_end=getattr(model_cfg.mm_cfg, 'use_im_start_end', False),
+                image_processor=image_processor,
+                add_extra_token=add_extra_token,
+                context_length=model_cfg.encoder_seq_length,
+                media_type=data_cfg.get('media_type', 'image'),
+                num_frames=data_cfg.get('num_frames', -1),
+                use_lita=getattr(model_cfg.mm_cfg, 'use_lita', False),
+                lita=getattr(model_cfg.mm_cfg, 'lita', {}),
+                mm_mlp_adapter_type=model_cfg.mm_cfg.get('mm_mlp_adapter_type', 'linear'),
+                packing=data_cfg.get('packing', False),
+            ),
+            replication=pp * cp * tp,
+        )
+    else:
+        train_dataset = NevaDataset(
+            tokenizer=tokenizer,
+            data_path=data_path,
+            multimodal_cfg=dict(
+                is_multimodal=data_cfg.is_multimodal,
+                sep_image_conv_front=data_cfg.sep_image_conv_front,
+                model_type=mm_cfg.llm.get("model_type", "nvgpt"),
+                conv_template=data_cfg.get("conv_template", "nvgpt"),
+                patch_dim=model_cfg.mm_cfg.vision_encoder.patch_dim,
+                crop_size=crop_size,
+                image_folder=data_cfg.get('image_folder', None),
+                video_folder=data_cfg.get('video_folder', None),
+                image_aspect_ratio=data_cfg.image_aspect_ratio,
+                use_im_start_end=getattr(model_cfg.mm_cfg, 'use_im_start_end', False),
+                image_processor=image_processor,
+                add_extra_token=add_extra_token,
+                context_length=model_cfg.encoder_seq_length,
+                media_type=data_cfg.get('media_type', 'image'),
+                num_frames=data_cfg.get('num_frames', -1),
+                use_lita=getattr(model_cfg.mm_cfg, 'use_lita', False),
+                lita=getattr(model_cfg.mm_cfg, 'lita', {}),
+                mm_mlp_adapter_type=model_cfg.mm_cfg.get('mm_mlp_adapter_type', 'linear'),
+            ),
+            data_cfg=dict(
+                splice_single_frame=data_cfg.get('splice_single_frame', None),
+                num_frames=data_cfg.get('num_frames', -1),
+                sep_token_between_frames=data_cfg.get('sep_token_between_frames', False),
+            ),
+        )
 
     return dict(train_dataset=train_dataset, eval_dataset=train_dataset)
 
@@ -1504,3 +1547,163 @@ class NevaPackedSeqDatatset(Dataset):
         }
 
         return batch
+
+
+def expand2square(pil_img, background_color):
+    width, height = pil_img.size
+    if width == height:
+        return pil_img
+    elif width > height:
+        result = Image.new(pil_img.mode, (width, width), background_color)
+        result.paste(pil_img, (0, (width - height) // 2))
+        return result
+    else:
+        result = Image.new(pil_img.mode, (height, height), background_color)
+        result.paste(pil_img, ((height - width) // 2, 0))
+        return result
+
+class AlignmentDataset(StreamingDataset):
+    def __init__(
+        self,
+        remote,
+        local,
+        shuffle,
+        tokenizer,
+        batch_size,
+        multimodal_cfg,
+        region=None,
+        replication=1
+    ):
+        super(AlignmentDataset, self).__init__(
+            remote=remote,
+            local=local,
+            shuffle=shuffle,
+            batch_size=batch_size,
+            replication=replication,
+        )
+        self.tokenizer=tokenizer
+        self.config = oci.config.from_file()
+        self.oci_fs = OCIFileSystem(self.config, region=region)
+        self.processor = multimodal_cfg.get("image_processor")
+        self.region = region
+        self.aspect_ratio = multimodal_cfg.get("image_aspect_ratio")
+        self.crop_size = multimodal_cfg.get("crop_size")
+        self.multimodal_cfg = multimodal_cfg
+        self.conv_template = multimodal_cfg.get("conv_template")
+
+    def handle_image(self, example):
+        try:
+            with self.oci_fs.open(
+                example["image_url"],
+                "rb",
+                region=self.region,
+                blocksize=4 * 1024 * 1024,
+            ) as f:
+                image = Image.open(f).convert("RGB")
+
+            if self.aspect_ratio == "pad":
+                if isinstance(self.processor, tuple):
+                    images = tuple()
+                    for processor in self.processor:
+                        image = expand2square(image, tuple(int(x * 255) for x in processor.image_mean))
+                        images = images + (processor.preprocess(image, return_tensors="pt")["pixel_values"][0],)
+                    image = images
+                else:
+                    image = expand2square(image, tuple(int(x * 255) for x in processor.image_mean))
+                    image = self.processor.preprocess(image, return_tensors="pt")["pixel_values"][0]
+            else:
+                if isinstance(self.processor, tuple):
+                    images = tuple()
+                    for processor in self.processor:
+                        images = images + (processor.preprocess(image, return_tensors="pt")["pixel_values"][0],)
+                    image = images
+                else:
+                    image = self.processor.preprocess(image, return_tensors="pt")["pixel_values"][0]
+
+            patch_dim = self.multimodal_cfg["patch_dim"]
+
+            height_num_patches = image.shape[-2] // patch_dim
+            width_num_patches = image.shape[-1] // patch_dim
+
+            if self.multimodal_cfg["mm_mlp_adapter_type"] == "mlp_downsample":
+                if height_num_patches % 2 != 0:
+                    height_num_patches += 1
+                if width_num_patches % 2 != 0:
+                    width_num_patches += 1
+
+            cur_token_len = height_num_patches * width_num_patches
+
+            sources = preprocess_multimodal(
+                copy.deepcopy([example]),
+                self.multimodal_cfg,
+                cur_token_len,
+                use_plain=(self.conv_template == "plain"),
+            )
+
+        except Exception as e:
+            print("image_dataloading error occured")
+            print(e)
+            import traceback
+            traceback.print_exc()
+            raise e
+
+        return sources, image
+
+
+    def __getitem__(self, i):
+        try:
+            if self.oci_fs is None:
+                self.oci_fs = OCIFileSystem(self.config, region=self.region)
+
+            data = super(AlignmentDataset, self).__getitem__(i)
+            sources = []
+            images = []
+
+            example = {
+                "image_url": data['content']['sources']["image_url"],
+                "conversations": data['content']['sources']['conversations'],
+            }
+
+            source, image = self.handle_image(example)
+            image = image.unsqueeze(0)
+
+            sources.extend(source)
+            images.append(image)
+
+            data_dict = preprocess_conversations(self, sources)
+            data_dict['tokens'] = data_dict['tokens'][0]
+            data_dict['labels'] = data_dict['labels'][0]
+            data_dict["image"] = torch.cat(images)
+
+            return data_dict
+
+        except Exception as e:
+            print(e)
+            traceback.print_exc()
+            print("error caughted")
+            self.return_dummy_data()
+
+        except Exception as e:
+            print(e)
+            import traceback
+            traceback.print_exc()
+            print("error caughted")
+            data_dict = {}
+            if isinstance(self.processor, tuple):
+                data_dict["image"] = ()
+                for processor in self.processor:
+                    data_dict["image"] = data_dict["images"] + (
+                        torch.zeros(
+                            3,
+                            self.crop_size[0],
+                            self.crop_size[1],
+                            dtype=torch.float32,
+                        ),
+                    )
+            else:
+                crop_size = self.crop_size
+                data_dict["image"] = torch.zeros(3, crop_size[0], crop_size[1], dtype=torch.float32)
+            data_dict["tokens"] = (torch.zeros(2) + 1).long()
+            data_dict["labels"] = (torch.zeros(2) - 1).long()
+            return data_dict
+        

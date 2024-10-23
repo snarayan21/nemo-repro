@@ -25,6 +25,7 @@ from omegaconf import DictConfig, ListConfig, OmegaConf
 from pkg_resources import packaging
 from pytorch_lightning.trainer.trainer import Trainer
 from transformers import CLIPVisionModel, SiglipVisionModel
+from torch.utils.data import IterableDataset
 
 from nemo.collections.common.parts.utils import extend_instance
 from nemo.collections.multimodal.data.neva.conversation import DEFAULT_IM_END_TOKEN, DEFAULT_IM_START_TOKEN
@@ -1459,7 +1460,8 @@ class MegatronNevaModel(MultimodalAdapterModelMixin, MegatronGPTModel):
         collate_func = DataCollatorForSupervisedDataset(self.cfg, self.tokenizer)
         return torch.utils.data.DataLoader(
             dataset,
-            batch_sampler=batch_sampler,
+            batch_sampler=batch_sampler if not isinstance(dataset, IterableDataset) else None,
+            batch_size=None if isinstance(dataset, IterableDataset) else 1,
             collate_fn=collate_func,
             num_workers=self.cfg.data.num_workers,
             pin_memory=True,
