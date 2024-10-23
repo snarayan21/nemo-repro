@@ -1412,6 +1412,7 @@ class MegatronNevaModel(MultimodalAdapterModelMixin, MegatronGPTModel):
                     self.model.module.image_processor if hasattr(self.model, "module") else self.model.image_processor
                 ),
                 model_cfg=self.cfg,
+                streaming=self.cfg.data.get('streaming', False),
             )
             self._train_ds = ds_dict["train_dataset"]
             self._validation_ds = ds_dict["eval_dataset"]
