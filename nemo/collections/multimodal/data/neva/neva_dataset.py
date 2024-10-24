@@ -1588,7 +1588,7 @@ class AlignmentDataset(StreamingDataset):
         )
         self.tokenizer=tokenizer
         self.config = oci.config.from_file()
-        self.oci_fs = OCIFileSystem(self.config, region='us-chicago-1')
+        self.oci_fs = OCIFileSystem(self.config, region=self.region)
         self.processor = multimodal_cfg.get("image_processor")
         self.region = region
         self.aspect_ratio = multimodal_cfg.get("image_aspect_ratio")
@@ -1658,17 +1658,13 @@ class AlignmentDataset(StreamingDataset):
     def __getitem__(self, i):
         try:
             if self.oci_fs is None:
-                # self.oci_fs = OCIFileSystem(self.config, region=self.region)
-                self.oci_fs = OCIFileSystem(self.config, region="us-chicago-1")
+                self.oci_fs = OCIFileSystem(self.config, region=self.region)
 
             data = super(AlignmentDataset, self).__getitem__(i)
             sources = []
             images = []
 
             url = data['content']['sources']["image_url"]
-            url = url.split('images')[-1]
-            url = "oci://us-chicago-1_tl-dataset@axcw5iqjbtrz/layer1/public-image/llava/pt-images" + url
-
             example = {
                 "image_url": url,
                 "conversations": data['content']['sources']['conversations'],

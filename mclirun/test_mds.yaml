@@ -4,7 +4,7 @@ name: nemo-repro-test-mds
 cluster: r15z4p2
 gpu_type: h100_80gb
 gpu_num: 16
-image: 12labs/nemo:ifb_nccl_20
+image: 12labs/nemo-mosaic:mosaic
 
 integrations:
   - integration_type: git_repo
@@ -30,6 +30,7 @@ command: |
   export NVIDIA_PYTORCH_VERSION=24.02
   export GLOO_SOCKET_IFNAME=eth0
   export NCCL_DEBUG=INFO
+  export TOKENIZERS_PARALLELISM=false
 
   cd nemo-repro
   ls
