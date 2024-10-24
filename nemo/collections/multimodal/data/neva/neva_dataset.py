@@ -1689,12 +1689,6 @@ class AlignmentDataset(StreamingDataset):
 
         except Exception as e:
             print(e)
-            traceback.print_exc()
-            print("error caughted")
-            self.return_dummy_data()
-
-        except Exception as e:
-            print(e)
             import traceback
             traceback.print_exc()
             print("error caughted")
