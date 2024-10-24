@@ -52,7 +52,8 @@ def set_max_steps_from_streaming(cfg):
 
     max_steps = steps_per_epoch
     
-    cfg.trainer.max_steps = max_steps
+    cfg.trainer.max_steps = max_steps * cfg.trainer.max_epochs
+    cfg.trainer.max_epochs = -1
 
 
 @hydra_runner(config_path="conf", config_name="neva_config")
