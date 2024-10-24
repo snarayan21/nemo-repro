@@ -1588,7 +1588,7 @@ class AlignmentDataset(StreamingDataset):
         )
         self.tokenizer=tokenizer
         self.config = oci.config.from_file()
-        self.oci_fs = OCIFileSystem(self.config, region=region)
+        self.oci_fs = OCIFileSystem(self.config, region='us-chicago-1')
         self.processor = multimodal_cfg.get("image_processor")
         self.region = region
         self.aspect_ratio = multimodal_cfg.get("image_aspect_ratio")
