@@ -76,8 +76,9 @@ def main(cfg) -> None:
 
     model_train_dataloader = model._train_dl
 
-    print("type of model train dataloader: ", type(model_train_dataloader))
-    print("type of model train dataset: ", type(model_train_dataloader.dataset))
+    print("Saaketh: type of model train dataloader: ", type(model_train_dataloader))
+    print("Saaketh: type of model train dataset: ", type(model_train_dataloader.dataset))
+    print("Saaketh: number of dataloader workers: ", model_train_dataloader.num_workers)
 
     curr_rank = torch.distributed.get_rank()
     total_batches = len(model_train_dataloader)
@@ -85,7 +86,7 @@ def main(cfg) -> None:
     import time
     for i, batch in enumerate(model_train_dataloader):
         time.sleep(0.05)
-        print(f"RANK {curr_rank}: Retrieved sample from dataloader for batch {i}/{total_batches}")
+        print(f"Saaketh: RANK {curr_rank}: Retrieved sample from dataloader for batch {i}/{total_batches}")
 
     #trainer.fit(model)
 

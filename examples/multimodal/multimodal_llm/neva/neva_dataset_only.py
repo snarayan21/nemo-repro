@@ -130,7 +130,7 @@ def main(dataset_path: str, region: str):
 
     torch.distributed.init_process_group()
 
-    print("Initialized Process group!!")
+    print("Saaketh: Initialized Process group!!")
 
     dataset = ImageDataset(
         remote=dataset_path,
@@ -143,7 +143,7 @@ def main(dataset_path: str, region: str):
     curr_rank = torch.distributed.get_rank()
 
     for i, sample in enumerate(dataset):
-        print(f'RANK {curr_rank}, Retrieved sample {i}')
+        print(f'Saaketh: RANK {curr_rank}, Retrieved sample {i}')
 
 
 if __name__ == '__main__':
