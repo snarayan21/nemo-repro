@@ -69,6 +69,7 @@ from nemo.collections.vision.data.megatron.data_samplers import MegatronVisionPr
 from nemo.core import adapter_mixins
 from nemo.core.classes.common import PretrainedModelInfo
 from nemo.utils import logging
+from streaming import StreamingDataset
 
 try:
     from megatron.energon import (
@@ -1433,6 +1434,9 @@ class MegatronNevaModel(MultimodalAdapterModelMixin, MegatronGPTModel):
 
         if hasattr(self.cfg.data, 'dataloader_type') and self.cfg.data.dataloader_type is not None:
             print("Saaketh: creating different dataloader")
+            print("Saaketh: different dataloader type is: ", self.cfg.data.dataloader_type)
+            print("Saaketh: dataset type is: ", type(dataset))
+            print("Saaketh: is streaming?", isinstance(dataset, StreamingDataset))
             if self.cfg.data.dataloader_type == 'single':
                 batch_sampler = MegatronPretrainingSampler(
                     total_samples=len(dataset),
