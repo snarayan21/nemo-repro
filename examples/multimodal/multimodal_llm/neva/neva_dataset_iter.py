@@ -74,11 +74,10 @@ def main(cfg) -> None:
     model = MegatronNevaModel(cfg.model, trainer)
     model.setup(stage='fit')
 
-    trainer_train_dataloader = trainer.train_dataloader
     model_train_dataloader = model._train_dl
 
-    print("type of trainer train dataloader: ", type(trainer_train_dataloader))
     print("type of model train dataloader: ", type(model_train_dataloader))
+    print("type of model train dataset: ", type(model_train_dataloader.dataset))
 
     curr_rank = torch.distributed.get_rank()
     total_batches = len(model_train_dataloader)

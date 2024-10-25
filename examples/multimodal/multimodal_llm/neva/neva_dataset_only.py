@@ -130,6 +130,8 @@ def main(dataset_path: str, region: str):
 
     torch.distributed.init_process_group()
 
+    print("Initialized Process group!!")
+
     dataset = ImageDataset(
         remote=dataset_path,
         local=None,
