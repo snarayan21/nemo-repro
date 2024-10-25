@@ -1650,6 +1650,7 @@ class MegatronGPTModel(MegatronBaseModel, TextGeneration):
         logging.info(f'Building dataloader with consumed samples: {consumed_samples}')
         # Megatron sampler
         if hasattr(self.cfg.data, 'dataloader_type') and self.cfg.data.dataloader_type is not None:
+            print("Saaketh: creating different dataloader")
             data_sampler = (
                 MegatronPretrainingSampler
                 if self.cfg.data.get('legacy_dataset', False)
@@ -1680,12 +1681,15 @@ class MegatronGPTModel(MegatronBaseModel, TextGeneration):
                 raise ValueError('cfg.data.dataloader_type must be "single" or "cyclic"')
         else:
             raise ValueError('cfg.data.dataloader_type not found. Must be "single" or "cyclic"')
+        
+        print("Saaketh: Creating regular dataloader.")
+        print("Saaketh: setting pin memory to False.")
 
         return torch.utils.data.DataLoader(
             dataset,
             batch_sampler=batch_sampler,
             num_workers=self.cfg.data.num_workers,
-            pin_memory=True,
+            #pin_memory=True,
             persistent_workers=True if self.cfg.data.num_workers > 0 else False,
         )
 
