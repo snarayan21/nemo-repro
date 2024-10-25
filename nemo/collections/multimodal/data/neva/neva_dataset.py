@@ -1593,7 +1593,8 @@ class AlignmentDataset(StreamingDataset):
         self.config = oci.config.from_file()
         print("Saaketh: oci config is: ", self.config)
         print("Saaketh: setting retry strategy.")
-        self.oci_fs = OCIFileSystem(self.config, region=region, oci_additional_kwargs={"retry_strategy": oci.retry.DEFAULT_RETRY_STRATEGY})
+        #self.oci_fs = OCIFileSystem(self.config, region=region, oci_additional_kwargs={"retry_strategy": oci.retry.DEFAULT_RETRY_STRATEGY})
+        self.oci_fs = None
         self.processor = multimodal_cfg.get("image_processor")
         self.region = region
         self.aspect_ratio = multimodal_cfg.get("image_aspect_ratio")
@@ -1762,7 +1763,7 @@ class AlignmentDataset(StreamingDataset):
             #     use_plain=(self.conv_template == "plain"),
             # )
 
-        #return sources, image
+        # return sources, image
 
         tensor_image = self.transform(image)
         return tensor_image
@@ -1773,8 +1774,8 @@ class AlignmentDataset(StreamingDataset):
             self.oci_fs = OCIFileSystem(self.config, region=self.region, oci_additional_kwargs={"retry_strategy": oci.retry.DEFAULT_RETRY_STRATEGY})
 
         data = super(AlignmentDataset, self).__getitem__(i)
-        #sources = []
-        images = []
+        # sources = []
+        #images = []
 
         url = data['content']['sources']["image_url"]
         example = {
@@ -1782,18 +1783,18 @@ class AlignmentDataset(StreamingDataset):
             "conversations": data['content']['sources']['conversations'],
         }
 
-        #source, image = self.new_handle_image(example)
+        # source, image = self.new_handle_image(example)
         image = self.new_handle_image(example)
-        image = image.unsqueeze(0)
+        #image = image.unsqueeze(0)
 
         #sources.extend(source)
-        images.append(image)
+        #images.append(image)
 
         # data_dict = preprocess_conversations(self, sources)
         # data_dict['tokens'] = data_dict['tokens'][0]
         # data_dict['labels'] = data_dict['labels'][0]
-        data_dict = {}
-        data_dict["image"] = torch.cat(images)
+        #data_dict = {}
+        #data_dict["image"] = torch.cat(images)
 
-        return data_dict
+        return image
         
