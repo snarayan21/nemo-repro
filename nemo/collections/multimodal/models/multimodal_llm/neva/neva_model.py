@@ -1433,10 +1433,7 @@ class MegatronNevaModel(MultimodalAdapterModelMixin, MegatronGPTModel):
             micro_batch_size = self.cfg.global_batch_size // parallel_state.get_data_parallel_world_size()
 
         if hasattr(self.cfg.data, 'dataloader_type') and self.cfg.data.dataloader_type is not None:
-            print("Saaketh: creating different dataloader")
-            print("Saaketh: different dataloader type is: ", self.cfg.data.dataloader_type)
-            print("Saaketh: dataset type is: ", type(dataset))
-            print("Saaketh: is streaming?", isinstance(dataset, StreamingDataset))
+            print("Saaketh: creating different dataloader, different dataloader type is: ", self.cfg.data.dataloader_type, "dataset type is: ", type(dataset), "is streaming?", isinstance(dataset, StreamingDataset))
             if self.cfg.data.dataloader_type == 'single':
                 batch_sampler = MegatronPretrainingSampler(
                     total_samples=len(dataset),
