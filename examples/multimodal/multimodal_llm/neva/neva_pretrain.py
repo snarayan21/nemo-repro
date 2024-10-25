@@ -67,7 +67,7 @@ def main(cfg) -> None:
         set_max_steps_from_streaming(cfg)
 
     trainer = MegatronTrainerBuilder(cfg).create_trainer()
-    exp_manager(trainer, cfg.exp_manager)
+    # exp_manager(trainer, cfg.exp_manager)
 
     model = MegatronNevaModel(cfg.model, trainer)
 
