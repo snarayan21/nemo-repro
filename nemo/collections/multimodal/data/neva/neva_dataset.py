@@ -54,6 +54,7 @@ from nemo.collections.multimodal.data.neva.conversation import (
 from nemo.collections.nlp.modules.common.megatron.utils import (
     get_ltor_masks_and_position_ids,
 )
+from torchvision import transforms
 
 MAX_NUM_IMAGES = 1
 IGNORE_INDEX = -1
@@ -1599,6 +1600,7 @@ class AlignmentDataset(StreamingDataset):
         self.crop_size = multimodal_cfg.get("crop_size")
         self.multimodal_cfg = multimodal_cfg
         self.conv_template = multimodal_cfg.get("conv_template")
+        self.transform = transforms.ToTensor()
 
     def handle_image(self, example):
         try:
@@ -1658,59 +1660,7 @@ class AlignmentDataset(StreamingDataset):
 
         return sources, image
     
-    def new_handle_image(self, example):
-        with self.oci_fs.open(
-                example["image_url"],
-                "rb",
-                region=self.region,
-                blocksize=4 * 1024 * 1024,
-            ) as f:
-
-            image = Image.open(f).convert("RGB")
-
-            if self.aspect_ratio == "pad":
-                if isinstance(self.processor, tuple):
-                    images = tuple()
-                    for processor in self.processor:
-                        image = expand2square(image, tuple(int(x * 255) for x in processor.image_mean))
-                        images = images + (processor.preprocess(image, return_tensors="pt")["pixel_values"][0],)
-                    image = images
-                else:
-                    image = expand2square(image, tuple(int(x * 255) for x in processor.image_mean))
-                    image = self.processor.preprocess(image, return_tensors="pt")["pixel_values"][0]
-            else:
-                if isinstance(self.processor, tuple):
-                    images = tuple()
-                    for processor in self.processor:
-                        images = images + (processor.preprocess(image, return_tensors="pt")["pixel_values"][0],)
-                    image = images
-                else:
-                    image = self.processor.preprocess(image, return_tensors="pt")["pixel_values"][0]
-
-            patch_dim = self.multimodal_cfg["patch_dim"]
-
-            height_num_patches = image.shape[-2] // patch_dim
-            width_num_patches = image.shape[-1] // patch_dim
-
-            if self.multimodal_cfg["mm_mlp_adapter_type"] == "mlp_downsample":
-                if height_num_patches % 2 != 0:
-                    height_num_patches += 1
-                if width_num_patches % 2 != 0:
-                    width_num_patches += 1
-
-            cur_token_len = height_num_patches * width_num_patches
-
-            sources = preprocess_multimodal(
-                copy.deepcopy([example]),
-                self.multimodal_cfg,
-                cur_token_len,
-                use_plain=(self.conv_template == "plain"),
-            )
-
-        return sources, image
-
-
-    def __getitem__(self, i):
+    def old__getitem__(self, i):
         try:
             if self.oci_fs is None:
                 self.oci_fs = OCIFileSystem(self.config, region=self.region, oci_additional_kwargs={"retry_strategy": oci.retry.DEFAULT_RETRY_STRATEGY})
@@ -1761,4 +1711,89 @@ class AlignmentDataset(StreamingDataset):
             data_dict["tokens"] = (torch.zeros(2) + 1).long()
             data_dict["labels"] = (torch.zeros(2) - 1).long()
             return data_dict
+    
+    
+    def new_handle_image(self, example):
+        with self.oci_fs.open(
+                example["image_url"],
+                "rb",
+                region=self.region,
+                blocksize=4 * 1024 * 1024,
+            ) as f:
+
+            image = Image.open(f).convert("RGB")
+
+            # if self.aspect_ratio == "pad":
+            #     if isinstance(self.processor, tuple):
+            #         images = tuple()
+            #         for processor in self.processor:
+            #             image = expand2square(image, tuple(int(x * 255) for x in processor.image_mean))
+            #             images = images + (processor.preprocess(image, return_tensors="pt")["pixel_values"][0],)
+            #         image = images
+            #     else:
+            #         image = expand2square(image, tuple(int(x * 255) for x in processor.image_mean))
+            #         image = self.processor.preprocess(image, return_tensors="pt")["pixel_values"][0]
+            # else:
+            #     if isinstance(self.processor, tuple):
+            #         images = tuple()
+            #         for processor in self.processor:
+            #             images = images + (processor.preprocess(image, return_tensors="pt")["pixel_values"][0],)
+            #         image = images
+            #     else:
+            #         image = self.processor.preprocess(image, return_tensors="pt")["pixel_values"][0]
+
+            # patch_dim = self.multimodal_cfg["patch_dim"]
+
+            # height_num_patches = image.shape[-2] // patch_dim
+            # width_num_patches = image.shape[-1] // patch_dim
+
+            # if self.multimodal_cfg["mm_mlp_adapter_type"] == "mlp_downsample":
+            #     if height_num_patches % 2 != 0:
+            #         height_num_patches += 1
+            #     if width_num_patches % 2 != 0:
+            #         width_num_patches += 1
+
+            # cur_token_len = height_num_patches * width_num_patches
+
+            # sources = preprocess_multimodal(
+            #     copy.deepcopy([example]),
+            #     self.multimodal_cfg,
+            #     cur_token_len,
+            #     use_plain=(self.conv_template == "plain"),
+            # )
+
+        #return sources, image
+
+        tensor_image = self.transform(image)
+        return tensor_image
+
+
+    def __getitem__(self, i):
+        if self.oci_fs is None:
+            self.oci_fs = OCIFileSystem(self.config, region=self.region, oci_additional_kwargs={"retry_strategy": oci.retry.DEFAULT_RETRY_STRATEGY})
+
+        data = super(AlignmentDataset, self).__getitem__(i)
+        #sources = []
+        images = []
+
+        url = data['content']['sources']["image_url"]
+        example = {
+            "image_url": url,
+            "conversations": data['content']['sources']['conversations'],
+        }
+
+        #source, image = self.new_handle_image(example)
+        image = self.new_handle_image(example)
+        image = image.unsqueeze(0)
+
+        #sources.extend(source)
+        images.append(image)
+
+        # data_dict = preprocess_conversations(self, sources)
+        # data_dict['tokens'] = data_dict['tokens'][0]
+        # data_dict['labels'] = data_dict['labels'][0]
+        data_dict = {}
+        data_dict["image"] = torch.cat(images)
+
+        return data_dict
         
