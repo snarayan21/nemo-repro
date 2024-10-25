@@ -1466,7 +1466,7 @@ class MegatronNevaModel(MultimodalAdapterModelMixin, MegatronGPTModel):
         collate_func = DataCollatorForSupervisedDataset(self.cfg, self.tokenizer)
         return torch.utils.data.DataLoader(
             dataset,
-            batch_sampler=batch_sampler if not isinstance(dataset, IterableDataset) else None,
+            #batch_sampler=batch_sampler if not isinstance(dataset, IterableDataset) else None,
             #batch_size=None if isinstance(dataset, IterableDataset) else 1,
             batch_size=1,
             collate_fn=collate_func,
