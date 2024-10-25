@@ -1657,6 +1657,57 @@ class AlignmentDataset(StreamingDataset):
             raise e
 
         return sources, image
+    
+    def new_handle_image(self, example):
+        with self.oci_fs.open(
+                example["image_url"],
+                "rb",
+                region=self.region,
+                blocksize=4 * 1024 * 1024,
+            ) as f:
+
+            image = Image.open(f).convert("RGB")
+
+            if self.aspect_ratio == "pad":
+                if isinstance(self.processor, tuple):
+                    images = tuple()
+                    for processor in self.processor:
+                        image = expand2square(image, tuple(int(x * 255) for x in processor.image_mean))
+                        images = images + (processor.preprocess(image, return_tensors="pt")["pixel_values"][0],)
+                    image = images
+                else:
+                    image = expand2square(image, tuple(int(x * 255) for x in processor.image_mean))
+                    image = self.processor.preprocess(image, return_tensors="pt")["pixel_values"][0]
+            else:
+                if isinstance(self.processor, tuple):
+                    images = tuple()
+                    for processor in self.processor:
+                        images = images + (processor.preprocess(image, return_tensors="pt")["pixel_values"][0],)
+                    image = images
+                else:
+                    image = self.processor.preprocess(image, return_tensors="pt")["pixel_values"][0]
+
+            patch_dim = self.multimodal_cfg["patch_dim"]
+
+            height_num_patches = image.shape[-2] // patch_dim
+            width_num_patches = image.shape[-1] // patch_dim
+
+            if self.multimodal_cfg["mm_mlp_adapter_type"] == "mlp_downsample":
+                if height_num_patches % 2 != 0:
+                    height_num_patches += 1
+                if width_num_patches % 2 != 0:
+                    width_num_patches += 1
+
+            cur_token_len = height_num_patches * width_num_patches
+
+            sources = preprocess_multimodal(
+                copy.deepcopy([example]),
+                self.multimodal_cfg,
+                cur_token_len,
+                use_plain=(self.conv_template == "plain"),
+            )
+
+        return sources, image
 
 
     def __getitem__(self, i):
@@ -1674,7 +1725,7 @@ class AlignmentDataset(StreamingDataset):
                 "conversations": data['content']['sources']['conversations'],
             }
 
-            source, image = self.handle_image(example)
+            source, image = self.new_handle_image(example)
             image = image.unsqueeze(0)
 
             sources.extend(source)
