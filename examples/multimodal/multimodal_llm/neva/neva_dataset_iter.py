@@ -72,13 +72,18 @@ def main(cfg) -> None:
     exp_manager(trainer, cfg.exp_manager)
 
     model = MegatronNevaModel(cfg.model, trainer)
+    model.setup(stage='fit')
 
-    train_dataloader = model._train_dl
+    trainer_train_dataloader = trainer.train_dataloader
+    model_train_dataloader = model._train_dl
+
+    print("type of trainer train dataloader: ", type(trainer_train_dataloader))
+    print("type of model train dataloader: ", type(model_train_dataloader))
 
     curr_rank = torch.distributed.get_rank()
-    total_batches = len(train_dataloader)
+    total_batches = len(model_train_dataloader)
 
-    for i, batch in enumerate(train_dataloader):
+    for i, batch in enumerate(model_train_dataloader):
         print(f"RANK {curr_rank}: Retrieved sample from dataloader for batch {i}/{total_batches}")
 
     #trainer.fit(model)
