@@ -1767,11 +1767,14 @@ class AlignmentDataset(StreamingDataset):
 
         tensor_image = self.transform(image)
         return tensor_image
+    
 
+    def simple_handle_image(self, example):
+        return torch.randn(3, 224, 224)
 
     def __getitem__(self, i):
-        if self.oci_fs is None:
-            self.oci_fs = OCIFileSystem(self.config, region=self.region, oci_additional_kwargs={"retry_strategy": oci.retry.DEFAULT_RETRY_STRATEGY})
+        # if self.oci_fs is None:
+        #     self.oci_fs = OCIFileSystem(self.config, region=self.region, oci_additional_kwargs={"retry_strategy": oci.retry.DEFAULT_RETRY_STRATEGY})
 
         data = super(AlignmentDataset, self).__getitem__(i)
         # sources = []
