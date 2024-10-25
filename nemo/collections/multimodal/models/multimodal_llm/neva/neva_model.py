@@ -1432,6 +1432,7 @@ class MegatronNevaModel(MultimodalAdapterModelMixin, MegatronGPTModel):
             micro_batch_size = self.cfg.global_batch_size // parallel_state.get_data_parallel_world_size()
 
         if hasattr(self.cfg.data, 'dataloader_type') and self.cfg.data.dataloader_type is not None:
+            print("Saaketh: creating different dataloader")
             if self.cfg.data.dataloader_type == 'single':
                 batch_sampler = MegatronPretrainingSampler(
                     total_samples=len(dataset),
@@ -1458,15 +1459,22 @@ class MegatronNevaModel(MultimodalAdapterModelMixin, MegatronGPTModel):
                 raise ValueError('cfg.data.dataloader_type must be "single" or "cyclic"')
         else:
             raise ValueError('cfg.data.dataloader_type not found. Must be "single" or "cyclic"')
+        
+        print("Saaketh: Creating regular dataloader.")
+        print("Saaketh: setting pin memory to False.")
+        print("Saaketh: setting dataloader batch size to 1")
+        print(f"Saaketh: dataloader is an iterable dataset? {isinstance(dataset, IterableDataset)}")
 
         collate_func = DataCollatorForSupervisedDataset(self.cfg, self.tokenizer)
         return torch.utils.data.DataLoader(
             dataset,
             batch_sampler=batch_sampler if not isinstance(dataset, IterableDataset) else None,
-            batch_size=None if isinstance(dataset, IterableDataset) else 1,
+            #batch_size=None if isinstance(dataset, IterableDataset) else 1,
+            batch_size=1,
             collate_fn=collate_func,
             num_workers=self.cfg.data.num_workers,
-            pin_memory=True,
+            #pin_memory=True,
+            pin_memory=False,
             persistent_workers=True if self.cfg.data.num_workers > 0 else False,
         )
 
