@@ -1461,10 +1461,7 @@ class MegatronNevaModel(MultimodalAdapterModelMixin, MegatronGPTModel):
         else:
             raise ValueError('cfg.data.dataloader_type not found. Must be "single" or "cyclic"')
         
-        print("Saaketh: Creating regular dataloader.")
-        print("Saaketh: setting pin memory to False.")
-        print("Saaketh: setting dataloader batch size to 1")
-        print(f"Saaketh: dataloader is an iterable dataset? {isinstance(dataset, IterableDataset)}")
+        print("Saaketh: Creating regular dataloader, setting pin memory to False., setting dataloader batch size to 1, dataloader is an iterable dataset?", isinstance(dataset, IterableDataset))
 
         collate_func = DataCollatorForSupervisedDataset(self.cfg, self.tokenizer)
         return torch.utils.data.DataLoader(
