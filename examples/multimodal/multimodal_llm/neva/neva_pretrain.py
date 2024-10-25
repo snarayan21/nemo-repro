@@ -61,7 +61,7 @@ def main(cfg) -> None:
     logging.info("\n\n************** Experiment configuration ***********")
     logging.info(f'\n{OmegaConf.to_yaml(cfg)}')
     cur_datetime = datetime.datetime.now().strftime("%y%m%d-%H%M")
-    cfg.exp_manager.name = cur_datetime
+    # cfg.exp_manager.name = cur_datetime
 
     if cfg.model.data.streaming:
         set_max_steps_from_streaming(cfg)
