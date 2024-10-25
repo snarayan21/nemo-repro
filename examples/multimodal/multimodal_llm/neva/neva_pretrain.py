@@ -35,7 +35,7 @@ def set_max_steps_from_streaming(cfg):
 
 
     oci_config = oci.config.from_file()
-    oci_fs = OCIFileSystem(oci_config, region=cfg.model.data.region)
+    oci_fs = OCIFileSystem(oci_config, region=cfg.model.data.region, oci_additional_kwargs={"retry_strategy": oci.retry.DEFAULT_RETRY_STRATEGY})
 
     with oci_fs.open(cfg.model.data.data_path + "/index.json", "r") as f:
         data = f.read()
