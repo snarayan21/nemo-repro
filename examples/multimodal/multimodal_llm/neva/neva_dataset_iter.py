@@ -83,7 +83,9 @@ def main(cfg) -> None:
     curr_rank = torch.distributed.get_rank()
     total_batches = len(model_train_dataloader)
 
+    import time
     for i, batch in enumerate(model_train_dataloader):
+        time.sleep(0.5)
         print(f"RANK {curr_rank}: Retrieved sample from dataloader for batch {i}/{total_batches}")
 
     #trainer.fit(model)
