@@ -85,7 +85,7 @@ def main(cfg) -> None:
 
     import time
     for i, batch in enumerate(model_train_dataloader):
-        time.sleep(0.5)
+        time.sleep(0.05)
         print(f"RANK {curr_rank}: Retrieved sample from dataloader for batch {i}/{total_batches}")
 
     #trainer.fit(model)
