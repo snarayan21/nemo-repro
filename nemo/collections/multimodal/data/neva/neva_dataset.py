@@ -1661,7 +1661,7 @@ class AlignmentDataset(StreamingDataset):
 
         return sources, image
     
-    def old__getitem__(self, i):
+    def __getitem__(self, i):
         try:
             if self.oci_fs is None:
                 self.oci_fs = OCIFileSystem(self.config, region=self.region, oci_additional_kwargs={"retry_strategy": oci.retry.DEFAULT_RETRY_STRATEGY})
@@ -1676,7 +1676,7 @@ class AlignmentDataset(StreamingDataset):
                 "conversations": data['content']['sources']['conversations'],
             }
 
-            source, image = self.new_handle_image(example)
+            source, image = self.handle_image(example)
             image = image.unsqueeze(0)
 
             sources.extend(source)
@@ -1772,33 +1772,33 @@ class AlignmentDataset(StreamingDataset):
     def simple_handle_image(self, example):
         return torch.randn(3, 224, 224)
 
-    def __getitem__(self, i):
-        if self.oci_fs is None:
-            self.oci_fs = OCIFileSystem(self.config, region=self.region, oci_additional_kwargs={"retry_strategy": oci.retry.DEFAULT_RETRY_STRATEGY})
+    # def new__getitem__(self, i):
+    #     if self.oci_fs is None:
+    #         self.oci_fs = OCIFileSystem(self.config, region=self.region, oci_additional_kwargs={"retry_strategy": oci.retry.DEFAULT_RETRY_STRATEGY})
 
-        data = super(AlignmentDataset, self).__getitem__(i)
-        # sources = []
-        #images = []
+    #     data = super(AlignmentDataset, self).__getitem__(i)
+    #     # sources = []
+    #     #images = []
 
-        url = data['content']['sources']["image_url"]
-        example = {
-            "image_url": url,
-            "conversations": data['content']['sources']['conversations'],
-        }
+    #     url = data['content']['sources']["image_url"]
+    #     example = {
+    #         "image_url": url,
+    #         "conversations": data['content']['sources']['conversations'],
+    #     }
 
-        # source, image = self.new_handle_image(example)
-        image = self.new_handle_image(example)
-        #image = self.simple_handle_image(example)
-        #image = image.unsqueeze(0)
+    #     # source, image = self.new_handle_image(example)
+    #     image = self.new_handle_image(example)
+    #     #image = self.simple_handle_image(example)
+    #     #image = image.unsqueeze(0)
 
-        #sources.extend(source)
-        #images.append(image)
+    #     #sources.extend(source)
+    #     #images.append(image)
 
-        # data_dict = preprocess_conversations(self, sources)
-        # data_dict['tokens'] = data_dict['tokens'][0]
-        # data_dict['labels'] = data_dict['labels'][0]
-        #data_dict = {}
-        #data_dict["image"] = torch.cat(images)
+    #     # data_dict = preprocess_conversations(self, sources)
+    #     # data_dict['tokens'] = data_dict['tokens'][0]
+    #     # data_dict['labels'] = data_dict['labels'][0]
+    #     #data_dict = {}
+    #     #data_dict["image"] = torch.cat(images)
 
-        return image
+    #     return image
         
