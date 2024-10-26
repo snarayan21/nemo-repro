@@ -1787,7 +1787,8 @@ class AlignmentDataset(StreamingDataset):
         }
 
         # source, image = self.new_handle_image(example)
-        image = self.new_handle_image(example)
+        #image = self.new_handle_image(example)
+        image = self.simple_handle_image(example)
         #image = image.unsqueeze(0)
 
         #sources.extend(source)
