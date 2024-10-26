@@ -1593,8 +1593,7 @@ class AlignmentDataset(StreamingDataset):
         self.config = oci.config.from_file()
         print("Saaketh: oci config is: ", self.config)
         print("Saaketh: setting retry strategy.")
-        #self.oci_fs = OCIFileSystem(self.config, region=region, oci_additional_kwargs={"retry_strategy": oci.retry.DEFAULT_RETRY_STRATEGY})
-        self.oci_fs = None
+        self.oci_fs = OCIFileSystem(self.config, region=region, oci_additional_kwargs={"retry_strategy": oci.retry.DEFAULT_RETRY_STRATEGY})
         self.processor = multimodal_cfg.get("image_processor")
         self.region = region
         self.aspect_ratio = multimodal_cfg.get("image_aspect_ratio")
