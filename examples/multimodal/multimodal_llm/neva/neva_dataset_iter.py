@@ -26,7 +26,10 @@ import oci
 import json
 from ocifs import OCIFileSystem
 import torch
+import multiprocessing as mp
 warnings.filterwarnings("ignore", category=ResourceWarning)
+
+mp.set_start_method("spawn", force=True)
 
 
 def set_max_steps_from_streaming(cfg):
